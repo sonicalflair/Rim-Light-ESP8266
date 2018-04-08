@@ -1,5 +1,5 @@
 
-#define FASTLED_ALLOW_INTERRUPTS 0  //Not sure if this is screwing up my POV
+//#define FASTLED_ALLOW_INTERRUPTS 0  //Not sure if this is screwing up my POV
 #include "FastLED.h"
 #include <EEPROM.h>
 
@@ -100,6 +100,8 @@ void loop() {
   EVERY_N_MILLISECONDS( 5 ) {
     gHue++;  //Used to change rainbow variable
   }
+
+  yield();
 
   // Read the state of the hall effect sensor into a local variable:
   byte hall_sensor_reading = digitalRead(hall_sensor_Pin);
