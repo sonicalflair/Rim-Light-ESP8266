@@ -1,5 +1,6 @@
 
 //#define FASTLED_ALLOW_INTERRUPTS 0  //Not sure if this is screwing up my POV
+
 #include "FastLED.h"
 #include <EEPROM.h>
 
@@ -13,7 +14,7 @@ const char *ssid = "Warehouse Access Point"; // The name of the Wi-Fi network th
 const char *password = "thereisnospoon";   // The password required to connect to it, leave blank for an open network
 
 const char *OTAName = "ESP8266";           // A name and a password for the OTA service
-const char *OTAPassword = "123456";
+const char *OTAPassword = "";
 
 // How many leds in your strip?
 #define NUM_LEDS 85
@@ -74,11 +75,6 @@ void setup() {
 
   startOTA();                  // Start the OTA service
 
-  //Set up LED array to move the Start LED to the user defined place
-  //50 works well for the front lights.
-  for (byte i = 0; i < (NUM_LEDS - stagger_leds_by); i++) {
-    stagger_led_array[i] = stagger_leds_by + i;
-  }
   for (byte i = 0; i < stagger_leds_by; i++) {
     stagger_led_array[i + (NUM_LEDS - stagger_leds_by)] = i;
   }
@@ -86,10 +82,14 @@ void setup() {
   pinMode(hall_sensor_Pin, INPUT);
 
   LEDS.addLeds<WS2812B, DATA_PIN, RGB>(leds, NUM_LEDS);
-  LEDS.setBrightness(150);
+  LEDS.setBrightness(50);
   //LEDS.setMaxRefreshRate(0); //Doesn't work well for WS2812 lights,
   LEDS.setDither(0); //Recommended by Wiki to turnoff when using POV
 }
+
+
+
+
 
 void loop() {
 
@@ -195,7 +195,10 @@ void loop() {
   }
 
   if (bike_stationary == true) {  //If the bike is stationary, show the Rainbow Animation
-    rainbow(); FastLED.show();
+    //rainbow();
+    //bpm();
+    juggle();
+    FastLED.show();
   }
 
   //Serial.print("Current_time - prev_led_time: "); Serial.println(current_time - prev_led_time);
@@ -301,6 +304,26 @@ void startOTA() { // Start the OTA service
   });
   ArduinoOTA.begin();
   Serial.println("OTA ready\r\n");
+}
+
+void bpm() {
+  // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
+  uint8_t BeatsPerMinute = 62;
+  CRGBPalette16 palette = PartyColors_p;
+  uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
+  for ( int i = 0; i < NUM_LEDS; i++) { //9948
+    leds[i] = ColorFromPalette(palette, gHue + (i * 2), beat - gHue + (i * 10));
+  }
+}
+
+void juggle() {
+  // eight colored dots, weaving in and out of sync with each other
+  fadeToBlackBy( leds, NUM_LEDS, 20);
+  byte dothue = 0;
+  for ( int i = 0; i < 8; i++) {
+    leds[beatsin16( i + 7, 0, NUM_LEDS - 1 )] |= CHSV(dothue, 200, 255);
+    dothue += 32;
+  }
 }
 
 
