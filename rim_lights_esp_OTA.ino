@@ -14,7 +14,7 @@ const char *ssid = "Warehouse Access Point"; // The name of the Wi-Fi network th
 const char *password = "thereisnospoon";   // The password required to connect to it, leave blank for an open network
 
 const char *OTAName = "ESP8266";           // A name and a password for the OTA service
-const char *OTAPassword = "";
+const char *OTAPassword = "thereisnospoon";
 
 // How many leds in your strip?
 #define NUM_LEDS 85
@@ -75,6 +75,12 @@ void setup() {
 
   startOTA();                  // Start the OTA service
 
+  //Set up LED array to move the Start LED to the user defined place
+  //50 works well for the front lights.
+  for (byte i = 0; i < (NUM_LEDS - stagger_leds_by); i++) {
+    stagger_led_array[i] = stagger_leds_by + i;
+  }
+
   for (byte i = 0; i < stagger_leds_by; i++) {
     stagger_led_array[i + (NUM_LEDS - stagger_leds_by)] = i;
   }
@@ -86,10 +92,6 @@ void setup() {
   //LEDS.setMaxRefreshRate(0); //Doesn't work well for WS2812 lights,
   LEDS.setDither(0); //Recommended by Wiki to turnoff when using POV
 }
-
-
-
-
 
 void loop() {
 
@@ -195,9 +197,9 @@ void loop() {
   }
 
   if (bike_stationary == true) {  //If the bike is stationary, show the Rainbow Animation
-    //rainbow();
+    rainbow();
     //bpm();
-    juggle();
+    //juggle();
     FastLED.show();
   }
 
@@ -232,6 +234,7 @@ void loop() {
 
       for (byte i = 0; i < num_leds_animate; i++) {
         leds[stagger_led_array[addmod8(led_counter, i, NUM_LEDS)]] = CRGB::Gold ;
+        //leds[stagger_led_array[addmod8(led_counter, i, NUM_LEDS)]] = CRGB::Linen;
       }
 
       leds[stagger_led_array[prev_led_counter]] = CRGB::Black;
@@ -265,11 +268,24 @@ void startWiFi() { // Start a Wi-Fi access point, and try to connect to some giv
   wifiMulti.addAP("ssid_from_AP_3", "your_password_for_AP_3");
 
   Serial.println("Connecting");
-  while (wifiMulti.run() != WL_CONNECTED && WiFi.softAPgetStationNum() < 1) {  // Wait for the Wi-Fi to connect
+
+  static unsigned int current_time = millis();
+  static unsigned int prev_time = millis();
+  static int wifi_timer = 10000;
+  boolean wifi_timer_over = false;
+
+  while ( wifi_timer_over == false && (wifiMulti.run() != WL_CONNECTED && WiFi.softAPgetStationNum() < 1)) {  // Wait for the Wi-Fi to connect
+    current_time = millis();
+    if (current_time - prev_time > wifi_timer) wifi_timer_over = true;                                       //Wait 5 seconds before moving on without wifi
+    yield();
     delay(250);
-    Serial.print('.');
+    Serial.print("Time Elapsed: "); Serial.println( current_time - prev_time);
+    Serial.print("Wifi Timer Over? "); Serial.println( wifi_timer_over);
+    //Serial.print('.');
   }
+
   Serial.println("\r\n");
+
   if (WiFi.softAPgetStationNum() == 0) {     // If the ESP is connected to an AP
     Serial.print("Connected to ");
     Serial.println(WiFi.SSID());             // Tell us what network we're connected to
