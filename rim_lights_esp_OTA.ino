@@ -66,7 +66,7 @@ uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 
 void setup() {
 
-  delay(2000);  //Delayed added upon start up, to initalize things before the LEDs turn on.
+  delay(1000);  //Delayed added upon start up, to initalize things before the LEDs turn on.
 
   Serial.begin(57600);
 
