@@ -283,7 +283,7 @@ void startWiFi() { // Start a Wi-Fi access point, and try to connect to some giv
 
   while ( wifi_timer_over == false && (wifiMulti.run() != WL_CONNECTED && WiFi.softAPgetStationNum() < 1)) {  // Wait for the Wi-Fi to connect
     current_time = millis();
-    if (current_time - prev_time > wifi_timer) wifi_timer_over = true;                                       //Wait 5 seconds before moving on without wifi
+    if (current_time - prev_time > wifi_timer) wifi_timer_over = true;                                       //Wait 10 seconds before moving on without wifi
     yield();
     delay(250);
     Serial.print("Time Elapsed: "); Serial.println( current_time - prev_time);
