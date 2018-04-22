@@ -14,13 +14,15 @@ const char *ssid = "Warehouse Access Point"; // The name of the Wi-Fi network th
 const char *password = "thereisnospoon";   // The password required to connect to it, leave blank for an open network
 
 const char *OTAName = "ESP8266";           // A name and a password for the OTA service
-const char *OTAPassword = "thereisnospoon";
+const char *OTAPassword = "";
 
 // How many leds in your strip?
 #define NUM_LEDS 85
 #define DATA_PIN 2
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
+
+#define M_DEBUG false
 
 // Define the array of leds
 CRGB leds[NUM_LEDS];
@@ -120,9 +122,11 @@ void loop() {
 
       hall_effect_period = current_time - prev_hall_trigger_time;  //Calculate the time between each rotation
 
-      //Serial.print("New Hall Effect Period: "); Serial.println(hall_effect_period);
-      //Serial.print("New LED Period: "); Serial.println(hall_effect_period / NUM_LEDS);
-      //Serial.println();
+      if (M_DEBUG) {
+        //Serial.print("New Hall Effect Period: "); Serial.println(hall_effect_period);
+        //Serial.print("New LED Period: "); Serial.println(hall_effect_period / NUM_LEDS);
+        //Serial.println();
+      }
 
       //If the bike is stationary, count a few rotations before starting the spinning wheel animation
       if (bike_stationary == true) {
@@ -136,8 +140,7 @@ void loop() {
       prev_hall_trigger_time = current_time; //Remember the time when the sensor was triggered. Used to
       blackout(); //Clear all the LEDS
 
-      float speed_bias = .1;
-
+      //float speed_bias = .1;
       //        if (hall_effect_period > prev_hall_effect_period) {
       //          //This means i'm slowing down
       //          is_bike_speeding_up = false;
@@ -174,9 +177,11 @@ void loop() {
   //  }
 
   if ((current_time - prev_hall_trigger_time) >= stationary_time_trigger) {
+
     //TESTCODE, should be true, setting to false to eliminate my stationary annimation
     bike_stationary = true;
     // bike_stationary = false;
+
     stationary_counter = 0;
   } else if (stationary_counter >= 3) {
     bike_stationary = false;
@@ -219,13 +224,15 @@ void loop() {
 
       if (led_counter >= NUM_LEDS) {
 
-        //        Serial.print("LED Counter Resetting on: "); Serial.println(led_counter);
-        //        Serial.print("Hall Effect Period: "); Serial.println(hall_effect_period);
-        //        Serial.print("Hall Effect Period / NUM_LEDS: "); Serial.println(time_per_led);
-        //        Serial.print("Time for LEDs to complete: "); Serial.println(current_time - led_start_time);
-        //        long offset_time = hall_effect_period - (current_time - led_start_time);
-        //        Serial.print("Offset between Wheel Period and LED: "); Serial.println(offset_time);
-        //        Serial.println("");
+        if (M_DEBUG) {
+          //        Serial.print("LED Counter Resetting on: "); Serial.println(led_counter);
+          //        Serial.print("Hall Effect Period: "); Serial.println(hall_effect_period);
+          //        Serial.print("Hall Effect Period / NUM_LEDS: "); Serial.println(time_per_led);
+          //        Serial.print("Time for LEDs to complete: "); Serial.println(current_time - led_start_time);
+          //        long offset_time = hall_effect_period - (current_time - led_start_time);
+          //        Serial.print("Offset between Wheel Period and LED: "); Serial.println(offset_time);
+          //        Serial.println("");
+        }
 
         led_start_time = current_time;
         prev_led_counter = 84;
