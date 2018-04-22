@@ -1,5 +1,6 @@
 
 //#define FASTLED_ALLOW_INTERRUPTS 0  //Not sure if this is screwing up my POV
+
 #include "FastLED.h"
 #include <EEPROM.h>
 
@@ -13,13 +14,15 @@ const char *ssid = "Warehouse Access Point"; // The name of the Wi-Fi network th
 const char *password = "thereisnospoon";   // The password required to connect to it, leave blank for an open network
 
 const char *OTAName = "ESP8266";           // A name and a password for the OTA service
-const char *OTAPassword = "123456";
+const char *OTAPassword = "";
 
 // How many leds in your strip?
 #define NUM_LEDS 85
 #define DATA_PIN 2
 
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
+
+#define M_DEBUG false
 
 // Define the array of leds
 CRGB leds[NUM_LEDS];
@@ -79,6 +82,7 @@ void setup() {
   for (byte i = 0; i < (NUM_LEDS - stagger_leds_by); i++) {
     stagger_led_array[i] = stagger_leds_by + i;
   }
+
   for (byte i = 0; i < stagger_leds_by; i++) {
     stagger_led_array[i + (NUM_LEDS - stagger_leds_by)] = i;
   }
@@ -86,7 +90,7 @@ void setup() {
   pinMode(hall_sensor_Pin, INPUT);
 
   LEDS.addLeds<WS2812B, DATA_PIN, RGB>(leds, NUM_LEDS);
-  LEDS.setBrightness(150);
+  LEDS.setBrightness(50);
   //LEDS.setMaxRefreshRate(0); //Doesn't work well for WS2812 lights,
   LEDS.setDither(0); //Recommended by Wiki to turnoff when using POV
 }
@@ -118,9 +122,11 @@ void loop() {
 
       hall_effect_period = current_time - prev_hall_trigger_time;  //Calculate the time between each rotation
 
-      //Serial.print("New Hall Effect Period: "); Serial.println(hall_effect_period);
-      //Serial.print("New LED Period: "); Serial.println(hall_effect_period / NUM_LEDS);
-      //Serial.println();
+      if (M_DEBUG) {
+        //Serial.print("New Hall Effect Period: "); Serial.println(hall_effect_period);
+        //Serial.print("New LED Period: "); Serial.println(hall_effect_period / NUM_LEDS);
+        //Serial.println();
+      }
 
       //If the bike is stationary, count a few rotations before starting the spinning wheel animation
       if (bike_stationary == true) {
@@ -134,8 +140,7 @@ void loop() {
       prev_hall_trigger_time = current_time; //Remember the time when the sensor was triggered. Used to
       blackout(); //Clear all the LEDS
 
-      float speed_bias = .1;
-
+      //float speed_bias = .1;
       //        if (hall_effect_period > prev_hall_effect_period) {
       //          //This means i'm slowing down
       //          is_bike_speeding_up = false;
@@ -172,9 +177,11 @@ void loop() {
   //  }
 
   if ((current_time - prev_hall_trigger_time) >= stationary_time_trigger) {
+
     //TESTCODE, should be true, setting to false to eliminate my stationary annimation
     bike_stationary = true;
     // bike_stationary = false;
+
     stationary_counter = 0;
   } else if (stationary_counter >= 3) {
     bike_stationary = false;
@@ -195,7 +202,10 @@ void loop() {
   }
 
   if (bike_stationary == true) {  //If the bike is stationary, show the Rainbow Animation
-    rainbow(); FastLED.show();
+    rainbow();
+    //bpm();
+    //juggle();
+    FastLED.show();
   }
 
   //Serial.print("Current_time - prev_led_time: "); Serial.println(current_time - prev_led_time);
@@ -214,13 +224,15 @@ void loop() {
 
       if (led_counter >= NUM_LEDS) {
 
-        //        Serial.print("LED Counter Resetting on: "); Serial.println(led_counter);
-        //        Serial.print("Hall Effect Period: "); Serial.println(hall_effect_period);
-        //        Serial.print("Hall Effect Period / NUM_LEDS: "); Serial.println(time_per_led);
-        //        Serial.print("Time for LEDs to complete: "); Serial.println(current_time - led_start_time);
-        //        long offset_time = hall_effect_period - (current_time - led_start_time);
-        //        Serial.print("Offset between Wheel Period and LED: "); Serial.println(offset_time);
-        //        Serial.println("");
+        if (M_DEBUG) {
+          //        Serial.print("LED Counter Resetting on: "); Serial.println(led_counter);
+          //        Serial.print("Hall Effect Period: "); Serial.println(hall_effect_period);
+          //        Serial.print("Hall Effect Period / NUM_LEDS: "); Serial.println(time_per_led);
+          //        Serial.print("Time for LEDs to complete: "); Serial.println(current_time - led_start_time);
+          //        long offset_time = hall_effect_period - (current_time - led_start_time);
+          //        Serial.print("Offset between Wheel Period and LED: "); Serial.println(offset_time);
+          //        Serial.println("");
+        }
 
         led_start_time = current_time;
         prev_led_counter = 84;
@@ -229,6 +241,7 @@ void loop() {
 
       for (byte i = 0; i < num_leds_animate; i++) {
         leds[stagger_led_array[addmod8(led_counter, i, NUM_LEDS)]] = CRGB::Gold ;
+        //leds[stagger_led_array[addmod8(led_counter, i, NUM_LEDS)]] = CRGB::Linen;
       }
 
       leds[stagger_led_array[prev_led_counter]] = CRGB::Black;
@@ -262,11 +275,24 @@ void startWiFi() { // Start a Wi-Fi access point, and try to connect to some giv
   wifiMulti.addAP("ssid_from_AP_3", "your_password_for_AP_3");
 
   Serial.println("Connecting");
-  while (wifiMulti.run() != WL_CONNECTED && WiFi.softAPgetStationNum() < 1) {  // Wait for the Wi-Fi to connect
+
+  static unsigned int current_time = millis();
+  static unsigned int prev_time = millis();
+  static int wifi_timer = 10000;
+  boolean wifi_timer_over = false;
+
+  while ( wifi_timer_over == false && (wifiMulti.run() != WL_CONNECTED && WiFi.softAPgetStationNum() < 1)) {  // Wait for the Wi-Fi to connect
+    current_time = millis();
+    if (current_time - prev_time > wifi_timer) wifi_timer_over = true;                                       //Wait 5 seconds before moving on without wifi
+    yield();
     delay(250);
-    Serial.print('.');
+    Serial.print("Time Elapsed: "); Serial.println( current_time - prev_time);
+    Serial.print("Wifi Timer Over? "); Serial.println( wifi_timer_over);
+    //Serial.print('.');
   }
+
   Serial.println("\r\n");
+
   if (WiFi.softAPgetStationNum() == 0) {     // If the ESP is connected to an AP
     Serial.print("Connected to ");
     Serial.println(WiFi.SSID());             // Tell us what network we're connected to
@@ -301,6 +327,26 @@ void startOTA() { // Start the OTA service
   });
   ArduinoOTA.begin();
   Serial.println("OTA ready\r\n");
+}
+
+void bpm() {
+  // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
+  uint8_t BeatsPerMinute = 62;
+  CRGBPalette16 palette = PartyColors_p;
+  uint8_t beat = beatsin8( BeatsPerMinute, 64, 255);
+  for ( int i = 0; i < NUM_LEDS; i++) { //9948
+    leds[i] = ColorFromPalette(palette, gHue + (i * 2), beat - gHue + (i * 10));
+  }
+}
+
+void juggle() {
+  // eight colored dots, weaving in and out of sync with each other
+  fadeToBlackBy( leds, NUM_LEDS, 20);
+  byte dothue = 0;
+  for ( int i = 0; i < 8; i++) {
+    leds[beatsin16( i + 7, 0, NUM_LEDS - 1 )] |= CHSV(dothue, 200, 255);
+    dothue += 32;
+  }
 }
 
 
